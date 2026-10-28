@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="UTF-8">
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
+	<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Ayora — Tableau de bord</title>
+	<link rel="stylesheet" href="css/styles.css?v=30">
+	<link rel="stylesheet" href="css/account.css?v=1">
+	<link rel="stylesheet" href="css/assistant.css?v=4">
+	<style>
+	/* ============================================================
+	   DASHBOARD v3 — Refonte UX : hierarchie claire, 3 zones
+	   ============================================================ */
+	.db-wrap { max-width: 1200px; margin: 0 auto; padding: 28px 28px 80px; }
+
+	/* ---- HERO : grosse zone qui pousse l'action principale ---- */
+	.db-hero {
+		background: linear-gradient(135deg, #5C0E1B 0%, #8B1A2B 60%, #A93757 100%);
+		color: #fff;
+		border-radius: 22px;
+		padding: 40px 44px;
+		margin-bottom: 28px;
+		box-shadow: 0 18px 50px rgba(139,26,43,0.18);
+		position: relative;
+		overflow: hidden;
+		display: grid;
+		grid-template-columns: 1fr auto;
+		gap: 28px;
+		align-items: center;
+	}
+	.db-hero::before {
+		content: "";
+		position: absolute;
+		top: -100px; right: -100px;
+		width: 320px; height: 320px;
+		border-radius: 50%;
+		background: radial-gradient(circle, rgba(212,168,83,0.22), transparent 70%);
+		pointer-events: none;
+	}
+	.db-hero .acc {
+		display: block;
+		font-size: 11px;
+		letter-spacing: 4px;
+		color: #F0D590;
+		text-transform: uppercase;
+		font-weight: 600;
+		margin-bottom: 10px;
+	}
+	.db-hero h1 {
+		color: #fff;
+		font-size: 2.4rem;
+		margin: 0 0 8px;
+		font-family: 'Cormorant Garamond', serif;
+		font-weight: 600;
+		line-height: 1.1;
+	}
+	.db-hero .next-action-text {
+		margin: 0 0 20px;
+		opacity: 0.93;
+		font-size: 15px;
+		max-width: 540px;
+		line-height: 1.55;
+	}
+	.db-hero .hero-cta {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		background: #fff;
+		color: #8B1A2B;
+		padding: 14px 28px;
+		border-radius: 50px;
+		font-weight: 700;
+		text-decoration: none;
+		font-size: 14px;
+		box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+		transition: transform 0.2s, box-shadow 0.2s;
+	}
+	.db-hero .hero-cta:hover {
+		transform: translateY(-3px);
+		box-shadow: 0 14px 36px rgba(0,0,0,0.24);
+	}
+	.db-hero .hero-cta svg { width: 18px; height: 18px; }
+	.db-hero .skip-link {
+		display: inline-block;
+		margin-left: 18px;
+		color: rgba(255,255,255,0.85);
+		font-size: 13px;
+		text-decoration: none;
+		border-bottom: 1px dashed rgba(255,255,255,0.4);
+	}
+	.db-hero .skip-link:hover { color: #fff; border-color: #fff; }
+
+	/* Cercle de progression a droite du hero */
+	.progress-ring {
+		position: relative;
+		width: 140px;
+		height: 140px;
+		flex-shrink: 0;
+	}
+	.progress-ring svg {
+		width: 100%;
+		height: 100%;
+		transform: rotate(-90deg);
+	}
+	.progress-ring .ring-bg { fill: none; stroke: rgba(255,255,255,0.18); stroke-width: 10; }
+	.progress-ring .ring-fg { fill: none; stroke: #F0D590; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }
+	.progress-ring .label {
+		position: absolute; inset: 0;
+		display: flex; flex-direction: column;
+		align-items: center; justify-content: center;
+		color: #fff;
+	}
+	.progress-ring .pct {
+		font-family: 'Cormorant Garamond', serif;
+		font-size: 38px;
+		font-weight: 600;
+		line-height: 1;
+	}
+	.progress-ring .pct-label {
+		font-size: 10px;
+		letter-spacing: 2px;
+		text-transform: uppercase;
+		opacity: 0.85;
+		margin-top: 4px;
+	}
+
+	/* ---- 3 STATS clefs (au lieu de 6) ---- */
+	.db-key-stats {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 16px;
+		margin-bottom: 28px;
+	}
+	.db-stat-key {
+		background: #fff;
+		border-radius: 14px;
+		padding: 22px 24px;
+		border: 1px solid #EAE0D5;
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		transition: transform 0.2s, box-shadow 0.2s;
+	}
+	.db-stat-key:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 10px 24px rgba(139,26,43,0.08);
+	}
+	.db-stat-key .ico {
+		width: 48px; height: 48px;
+		border-radius: 12px;
+		display: flex; align-items: center; justify-content: center;
+		flex-shrink: 0;
+	}
+	.db-stat-key .ico svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+	.db-stat-key.picks .ico { background: #FDF7F2; color: #8B1A2B; }
+	.db-stat-key.guests .ico { background: #FBF6EC; color: #B8922F; }
+	.db-stat-key.invites .ico { background: #FDFAF6; color: #6a5a4e; }
+	.db-stat-key .v {
+		font-family: 'Cormorant Garamond', serif;
+		font-size: 2rem;
+		color: #2A1E16;
+		font-weight: 600;
+		line-height: 1;
+	}
+	.db-stat-key .l {
+		font-size: 12px;
+		color: #8B7A6E;
+		margin-top: 4px;
+		letter-spacing: 0.5px;
+	}
+
+	/* ---- Steps tracker compact ---- */
+	.db-section { background: #fff; border-radius: 16px; padding: 26px 28px; border: 1px solid #EAE0D5; margin-bottom: 22px; }
+	.db-section h2 {
+		font-family: 'Cormorant Garamond', serif;
+		font-size: 1.5rem;
+		color: #5C0E1B;
+		margin: 0 0 4px;
+		font-weight: 600;
+	}
+	.db-section .subtitle { color: #8B7A6E; font-size: 13px; margin: 0 0 20px; }
+
+	.steps-flow {
+		display: grid;
+		grid-template-columns: repeat(6, 1fr);
+		gap: 8px;
+		position: relative;
+	}
+	.steps-flow::before {
+		content: "";
+		position: absolute;
+		top: 18px;
+		left: 8%; right: 8%;
+		height: 2px;
+		background: #F0E5D6;
+		z-index: 0;
+	}
+	.step-mini {
+		text-align: center;
+		position: relative;
+		z-index: 1;
+	}
+	.step-mini .dot {
+		width: 36px; height: 36px;
+		border-radius: 50%;
+		margin: 0 auto 10px;
+		display: flex; align-items: center; justify-content: center;
+		background: #fff;
+		border: 2px solid #DCC9B6;
+		color: #8B7A6E;
+		font-weight: 700;
+		font-size: 14px;
+		font-family: 'Cormorant Garamond', serif;
+	}
+	.step-mini.done .dot { background: #3D8B5E; border-color: #3D8B5E; color: #fff; }
+	.step-mini.in-progress .dot { background: #D4A853; border-color: #D4A853; color: #fff; }
+	.step-mini.current .dot { background: #fff; border-color: #8B1A2B; color: #8B1A2B; box-shadow: 0 0 0 4px rgba(139,26,43,0.12); }
+	.step-mini .label {
+		font-size: 11px;
+		color: #5a4a3e;
+		font-weight: 600;
+		line-height: 1.3;
+		max-width: 100px;
+		margin: 0 auto;
+	}
+	.step-mini .meta { font-size: 10px; color: #8B7A6E; margin-top: 3px; }
+
+	/* ---- Two-column secondary content ---- */
+	.db-secondary {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 22px;
+	}
+
+	.list-item {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		padding: 12px 14px;
+		border-radius: 10px;
+		border: 1px solid #F5EEE5;
+		margin-bottom: 8px;
+		text-decoration: none;
+		color: inherit;
+		transition: all 0.2s;
+	}
+	.list-item:hover { border-color: #DCC9B6; background: #FDFAF6; }
+	.list-item .badge-cat {
+		font-size: 10px;
+		color: #8B1A2B;
+		background: #FDF7F2;
+		padding: 4px 10px;
+		border-radius: 50px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		flex-shrink: 0;
+	}
+	.list-item .name { flex: 1; font-size: 14px; font-weight: 500; color: #2A1E16; }
+	.list-item .price { font-size: 13px; color: #B8922F; font-weight: 600; }
+	.list-item .score-pill {
+		background: linear-gradient(135deg, #8B1A2B, #D4A853);
+		color: #fff;
+		padding: 4px 10px;
+		border-radius: 50px;
+		font-size: 11px;
+		font-weight: 700;
+	}
+	.see-more {
+		display: block;
+		text-align: center;
+		padding: 10px;
+		color: #8B1A2B;
+		font-size: 13px;
+		font-weight: 600;
+		text-decoration: none;
+		border-top: 1px solid #F5EEE5;
+		margin-top: 6px;
+	}
+	.see-more:hover { background: #FDFAF6; }
+	.empty-state { text-align: center; padding: 28px 18px; color: #8B7A6E; font-size: 14px; }
+	.empty-state a { color: #8B1A2B; font-weight: 600; }
+
+	/* ---- Countdown wedding ---- */
+	.db-countdown {
+		background: linear-gradient(135deg, #FFF8E8 0%, #F0D590 100%);
+		border-radius: 16px;
+		padding: 20px 26px;
+		margin-bottom: 22px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 20px;
+		border: 1px solid #D4A853;
+	}
+	.db-countdown .ct-icon {
+		width: 52px; height: 52px;
+		background: #fff;
+		border-radius: 14px;
+		display: flex; align-items: center; justify-content: center;
+		color: #B8922F;
+		flex-shrink: 0;
+	}
+	.db-countdown .ct-icon svg { width: 28px; height: 28px; }
+	.db-countdown .ct-text { flex: 1; }
+	.db-countdown .ct-days {
+		font-family: 'Cormorant Garamond', serif;
+		font-size: 28px;
+		font-weight: 700;
+		color: #5C0E1B;
+		line-height: 1;
+	}
+	.db-countdown .ct-label {
+		font-size: 13px;
+		color: #6B5410;
+		margin-top: 4px;
+	}
+	.db-countdown .ct-date {
+		font-size: 13px;
+		color: #6B5410;
+		text-align: right;
+	}
+	.db-countdown .ct-date strong { color: #5C0E1B; font-size: 16px; display: block; font-family: 'Cormorant Garamond', serif; }
+	@media (max-width: 600px) {
+		.db-countdown { flex-direction: column; text-align: center; }
+		.db-countdown .ct-date { text-align: center; }
+	}
+
+	/* ---- Notification badge dans la navbar (positionnement relatif) ---- */
+	.menu-bar nav span { position: relative; }
+	.nav-badge {
+		display: inline-block;
+		background: #B83B5E;
+		color: #fff;
+		font-size: 9px;
+		font-weight: 700;
+		padding: 2px 6px;
+		border-radius: 50px;
+		margin-left: 4px;
+		vertical-align: top;
+	}
+
+	/* ---- Budget card --- */
+	.budget-bar {
+		display: flex;
+		justify-content: space-between;
+		padding: 10px 0;
+		border-bottom: 1px solid #F5EEE5;
+		font-size: 14px;
+	}
+	.budget-bar:last-child { border-bottom: 0; }
+	.budget-bar .lab { color: #8B7A6E; }
+	.budget-bar .val { color: #2A1E16; font-weight: 600; }
+	.budget-bar.total .val {
+		font-family: 'Cormorant Garamond', serif;
+		font-size: 22px;
+		color: #8B1A2B;
+	}
+
+	@media (max-width: 980px) {
+		.db-hero { grid-template-columns: 1fr; text-align: center; }
+		.db-hero .progress-ring { margin: 0 auto; }
+		.db-key-stats { grid-template-columns: 1fr; }
+		.db-secondary { grid-template-columns: 1fr; }
+		.steps-flow { grid-template-columns: repeat(3, 1fr); row-gap: 18px; }
+		.steps-flow::before { display: none; }
+	}
+	@media (max-width: 600px) {
+		.db-wrap { padding: 18px 16px 60px; }
+		.db-hero { padding: 28px 24px; }
+		.db-hero h1 { font-size: 1.9rem; }
+	}
+	</style>
+</head>
+<body>
+
+	<!-- NAVIGATION -->
+	<div class="menu-bar">
+		<div class="logo" onclick="location.href='dashboard.html'">Ayora<span>.ma</span></div>
+		<nav>
+			<span class="active" onclick="location.href='dashboard.html'">Tableau de bord</span>
+			<span onclick="location.href='recommendations.html'">Recommandations</span>
+			<span onclick="location.href='mychoices.html'">Mes choix</span>
+			<span onclick="location.href='vendors.html'">Prestataires</span>
+			<span onclick="location.href='guests.html'">Invités</span>
+			<span onclick="location.href='invitations.html'">Invitations</span>
+			<span onclick="location.href='assistant.html'">Assistante AYORA</span>
+		</nav>
+		<div class="user-info">
+			<span id="userName"></span>
+			<span onclick="logout()" style="cursor:pointer;">Déconnexion</span>
+			<span id="userBadge" class="badge-free">FREE</span>
+		</div>
+	</div>
+
+	<div class="db-wrap">
+
+		<!-- Countdown : affiche si une date de mariage est dans le questionnaire -->
+		<div class="db-countdown" id="weddingCountdown" style="display:none;">
+			<div class="ct-icon">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+					<rect x="3" y="4" width="18" height="18" rx="2"/>
+					<line x1="16" y1="2" x2="16" y2="6"/>
+					<line x1="8" y1="2" x2="8" y2="6"/>
+					<line x1="3" y1="10" x2="21" y2="10"/>
+					<path d="M8 14l3 3 5-5" stroke-width="2"/>
+				</svg>
+			</div>
+			<div class="ct-text">
+				<div class="ct-days" id="ctDays">—</div>
+				<div class="ct-label" id="ctLabel">avant le grand jour</div>
+			</div>
+			<div class="ct-date">
+				<strong id="ctDate">—</strong>
+				<span id="ctDateMeta">—</span>
+			</div>
+		</div>
+
+		<!-- =================================================== -->
+		<!-- ZONE 1 : HERO + Prochaine action (le focus principal) -->
+		<!-- =================================================== -->
+		<div class="db-hero">
+			<div>
+				<span class="acc">Votre prochaine étape</span>
+				<h1 id="nextActionTitle">Bonjour…</h1>
+				<p class="next-action-text" id="nextActionDesc">Chargement de votre planning…</p>
+				<a class="hero-cta" id="nextActionCta" href="questionnaire.html">
+					<span id="nextActionBtnText">Commencer</span>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+				</a>
+				<a class="skip-link" id="nextActionSkip" href="#" style="display:none;">Voir un autre conseil</a>
+			</div>
+			<div class="progress-ring">
+				<svg viewBox="0 0 120 120">
+					<circle class="ring-bg" cx="60" cy="60" r="50"/>
+					<circle class="ring-fg" id="ringFg" cx="60" cy="60" r="50" stroke-dasharray="314" stroke-dashoffset="314"/>
+				</svg>
+				<div class="label">
+					<div class="pct" id="heroPct">—</div>
+					<div class="pct-label">Avancement</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- =================================================== -->
+		<!-- ZONE 1.5 : Conseil du jour de l'Assistante AYORA     -->
+		<!-- =================================================== -->
+		<div class="db-assistant-card" id="ayoraAssistantCard">
+			<div class="av">A</div>
+			<div class="body">
+				<span class="acc">Conseil AYORA</span>
+				<h3>Besoin d'aide maintenant&nbsp;?</h3>
+				<p id="ayoraSuggestion">
+					Je peux t'aider à répartir ton budget, préparer ta checklist, comparer des prestataires ou choisir une salle.
+					Pose-moi une question dans la langue qui te convient — français, darija ou mélange.
+				</p>
+			</div>
+			<a class="db-assistant-cta" href="assistant.html">
+				Parler à AYORA
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+				</svg>
+			</a>
+		</div>
+
+		<!-- =================================================== -->
+		<!-- ZONE 2 : 3 stats CLES (pas 6)                        -->
+		<!-- =================================================== -->
+		<div class="db-key-stats">
+			<div class="db-stat-key picks">
+				<div class="ico"><svg viewBox="0 0 24 24"><path d="M5 8l3-4h8l3 4-7 11z"/><path d="M5 8h14"/></svg></div>
+				<div>
+					<div class="v" id="statPicks">—</div>
+					<div class="l">Prestataires retenus</div>
+				</div>
+			</div>
+			<div class="db-stat-key guests">
+				<div class="ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3 2.7-5.2 6-5.2s6 2.2 6 5.2"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5c2.7.4 4.5 2 4.5 4.5"/></svg></div>
+				<div>
+					<div class="v" id="statGuests">—</div>
+					<div class="l">Invités ajoutés</div>
+				</div>
+			</div>
+			<div class="db-stat-key invites">
+				<div class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></div>
+				<div>
+					<div class="v" id="statInvSent">—</div>
+					<div class="l">Invitations envoyées</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- =================================================== -->
+		<!-- ZONE 3 : Tracker en flow horizontal compact         -->
+		<!-- =================================================== -->
+		<div class="db-section">
+			<h2>Étapes de votre mariage</h2>
+			<p class="subtitle">Une vue d'ensemble de votre progression.</p>
+			<div class="steps-flow" id="stepsList"></div>
+		</div>
+
+		<!-- =================================================== -->
+		<!-- ZONE 4 : Détails secondaires (2 colonnes)           -->
+		<!-- =================================================== -->
+		<div class="db-secondary">
+			<div class="db-section">
+				<h2>Vos derniers choix</h2>
+				<p class="subtitle">Les prestataires que vous avez retenus.</p>
+				<div id="recentPicks">
+					<div class="empty-state">Chargement…</div>
+				</div>
+			</div>
+
+			<div class="db-section">
+				<h2>Top recommandations</h2>
+				<p class="subtitle">Les prestataires les plus compatibles avec votre profil.</p>
+				<div id="topRecos">
+					<div class="empty-state">Chargement…</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Budget (en dessous, optionnel/discret) -->
+		<div class="db-section" id="budgetCard" style="display:none;">
+			<h2>Budget estimé</h2>
+			<p class="subtitle">Vos engagements financiers en un coup d'œil.</p>
+			<div class="budget-bar"><span class="lab">Budget total prévu</span><span class="val" id="budgetTotal">—</span></div>
+			<div class="budget-bar"><span class="lab">Engagé via prestataires retenus</span><span class="val" id="budgetSpent">—</span></div>
+			<div class="budget-bar total"><span class="lab">Budget restant</span><span class="val" id="budgetLeft">—</span></div>
+		</div>
+
+	</div>
+
+	<footer class="site-footer">
+		<div class="footer-inner">
+			<div class="footer-brand">Ayora<span>.ma</span></div>
+			<nav class="footer-links">
+				<a href="cgu.html">CGU</a>
+				<a href="confidentialite.html">Confidentialité</a>
+				<a href="mentions.html">Mentions légales</a>
+				<a href="contact.html">Contact</a>
+			</nav>
+			<div class="footer-copy">© 2026 Ayora.ma — Tous droits réservés</div>
+		</div>
+	</footer>
+
+	<script src="js/api.js"></script>
+	<script src="js/format.js"></script>
+	<script src="js/ayora-ui.js"></script>
+	<script src="js/assistant.js?v=2"></script>
+	<script src="js/assistant-floating.js?v=2" data-ayora-page="dashboard"></script>
+	<script>
+	// Pull the deterministic "suggestion of the day" once the page is ready.
+	document.addEventListener('DOMContentLoaded', function() {
+		var el = document.getElementById('ayoraSuggestion');
+		if (el && window.AyoraAssistant) AyoraAssistant.loadSuggestionOfTheDay(el);
+	});
+	</script>
+	<script>
+	var user = checkAuth();
+	if (user) applyAccountHeader(user);
+	if (user) {
+		var firstName = user.firstName || '';
+		document.getElementById('userName').textContent = firstName;
+		document.getElementById('nextActionTitle').textContent = 'Bonjour ' + firstName;
+		applyPlanBadge(user.subscriptionType);
+	}
+
+	var STATE = { plan: 'FREE', invSent: 0, invRemaining: 10, qa: null, recos: [], picks: [], guests: [], devisCount: 0, rdvCount: 0 };
+
+	function applyPlanBadge(plan) {
+		var p = (plan || 'FREE').toUpperCase();
+		var b = document.getElementById('userBadge');
+		if (b) { b.textContent = p; b.className = 'badge-' + p.toLowerCase(); }
+	}
+
+	loadAll();
+	function loadAll() {
+		var p1 = api.get('/api/auth/me').then(function(d){
+			if (d && d.user) {
+				STATE.plan = d.user.subscriptionType || 'FREE';
+				applyPlanBadge(STATE.plan);
+				if (d.subscription) {
+					STATE.invSent = d.subscription.invitationsSent || 0;
+					STATE.invRemaining = (d.subscription.plan === 'PREMIUM') ? -1 : (d.subscription.remaining || 0);
+				}
+			}
+		}).catch(function(){});
+		var p2 = api.get('/api/questionnaire').then(function(d){
+			if (d && d.completed) STATE.qa = d;
+		}).catch(function(){});
+		var p3 = api.get('/api/recommendations').then(function(d){
+			if (Array.isArray(d)) STATE.recos = d;
+			else if (d && Array.isArray(d.all)) STATE.recos = d.all;
+			else if (d && d.blocks && Array.isArray(d.blocks.topPicks)) STATE.recos = d.blocks.topPicks;
+			else STATE.recos = [];
+		}).catch(function(){ STATE.recos = []; });
+		var p4 = api.get('/api/picks').then(function(d){
+			STATE.picks = (d && d.picks) ? d.picks : [];
+		}).catch(function(){ STATE.picks = []; });
+		var p5 = api.get('/api/guests').then(function(d){
+			STATE.guests = Array.isArray(d) ? d : [];
+		}).catch(function(){ STATE.guests = []; });
+		// Devis + RDV pour les badges de notifications navbar (cliente : ses propres pending)
+		var p6 = api.get('/api/auth/devis-list').then(function(d){
+			if (Array.isArray(d)) STATE.devisCount = d.filter(function(x){ return x.statut === 'EN_ATTENTE'; }).length;
+		}).catch(function(){ STATE.devisCount = 0; });
+		var p7 = api.get('/api/auth/rdv-list').then(function(d){
+			if (Array.isArray(d)) STATE.rdvCount = d.filter(function(x){ return x.statut === 'EN_ATTENTE'; }).length;
+		}).catch(function(){ STATE.rdvCount = 0; });
+		Promise.all([p1, p2, p3, p4, p5, p6, p7]).then(render);
+	}
+
+	function render() {
+		document.getElementById('statPicks').textContent = STATE.picks.length;
+		document.getElementById('statGuests').textContent = STATE.guests.length;
+		document.getElementById('statInvSent').textContent = STATE.invSent;
+
+		// === Countdown jusqu'au mariage (si date renseignée) ===
+		renderCountdown();
+		// === Badges de notifications sur la navbar (devis + RDV en attente) ===
+		renderNavBadges();
+
+		var budget = computeBudget();
+		if (budget.total > 0) {
+			document.getElementById('budgetCard').style.display = 'block';
+			document.getElementById('budgetTotal').textContent = formatPrice(budget.total);
+			document.getElementById('budgetSpent').textContent = formatPrice(budget.spent);
+			document.getElementById('budgetLeft').textContent = formatPrice(budget.left);
+		}
+
+		var progress = computeProgress();
+		document.getElementById('heroPct').textContent = progress.pct + '%';
+		var ring = document.getElementById('ringFg');
+		var circ = 2 * Math.PI * 50;
+		ring.style.strokeDasharray = circ;
+		ring.style.strokeDashoffset = circ * (1 - progress.pct / 100);
+		renderSteps(progress.steps);
+		updateNextAction(progress);
+		renderRecentPicks();
+		renderTopRecos();
+	}
+
+	function updateNextAction(progress) {
+		// Détermine la prochaine action utile
+		var next = null;
+		for (var i = 0; i < progress.steps.length; i++) {
+			if (progress.steps[i].state !== 'done') {
+				next = progress.steps[i];
+				break;
+			}
+		}
+		var titleEl = document.getElementById('nextActionTitle');
+		var descEl = document.getElementById('nextActionDesc');
+		var ctaEl = document.getElementById('nextActionCta');
+		var btnText = document.getElementById('nextActionBtnText');
+
+		if (!next) {
+			titleEl.textContent = 'Bravo, tout est prêt !';
+			descEl.textContent = 'Plus qu\'à savourer le grand jour. N\'hésitez pas à ajuster vos choix si besoin.';
+			ctaEl.href = 'mychoices.html';
+			btnText.textContent = 'Voir mes choix';
+			return;
+		}
+		var firstName = user && user.firstName ? user.firstName : 'à vous';
+		var dict = {
+			account:       { t: 'Bonjour '+firstName, d: 'Bienvenue sur Ayora.', cta: 'questionnaire.html', txt: 'Commencer' },
+			questionnaire: { t: 'Personnalisons votre mariage', d: 'Répondez au questionnaire en ~8 minutes pour recevoir des recommandations sur mesure.', cta: 'questionnaire.html', txt: 'Remplir le questionnaire' },
+			recos:         { t: 'Vos recommandations sont prêtes', d: 'Découvrez les prestataires que notre IA a sélectionnés pour vous.', cta: 'recommendations.html', txt: 'Voir mes recommandations' },
+			picks:         { t: 'Choisissez vos prestataires', d: 'Retenez 1 prestataire par catégorie pour finaliser votre sélection.', cta: 'recommendations.html', txt: 'Faire mes choix' },
+			guests:        { t: 'Préparez votre liste d\'invités', d: 'Ajoutez vos invités pour pouvoir leur envoyer des invitations personnalisées.', cta: 'guests.html', txt: 'Ajouter mes invités' },
+			invites:       { t: 'Envoyez vos invitations', d: 'Vos modèles élégants sont prêts. Plus qu\'un clic pour les envoyer.', cta: 'invitations.html', txt: 'Envoyer mes invitations' }
+		};
+		var info = dict[next.key] || dict.questionnaire;
+		titleEl.textContent = info.t;
+		descEl.textContent = info.d;
+		ctaEl.href = info.cta;
+		btnText.textContent = info.txt;
+	}
+
+	function computeProgress() {
+		var nbInvitesTarget = (STATE.qa && STATE.qa.nbInvites) ? STATE.qa.nbInvites : 0;
+		var guestsCount = STATE.guests.length;
+		var picksCount = STATE.picks.length;
+		var recosCount = STATE.recos.length;
+
+		var stAccount = user ? 'done' : 'todo';
+		var stQa = (STATE.qa && STATE.qa.completed) ? 'done' : 'todo';
+		var stRecos = recosCount > 0 ? 'done' : 'todo';
+		var stPicks = picksCount === 0 ? 'todo' : (picksCount >= 6 ? 'done' : 'in-progress');
+
+		var lowerBound = nbInvitesTarget > 0 ? Math.floor(nbInvitesTarget * 0.8) : 0;
+		var stGuests = guestsCount === 0 ? 'todo' :
+		               (nbInvitesTarget > 0 && guestsCount >= lowerBound ? 'done' : 'in-progress');
+		var stInvites = STATE.invSent === 0 ? 'todo' :
+		                (nbInvitesTarget > 0 && STATE.invSent >= lowerBound ? 'done' : 'in-progress');
+
+		var steps = [
+			{ key:'account',       label:'Compte',          state:stAccount,  meta:'' },
+			{ key:'questionnaire', label:'Questionnaire',   state:stQa,       meta:'' },
+			{ key:'recos',         label:'Recommandations', state:stRecos,    meta: recosCount > 0 ? recosCount+' dispo' : '' },
+			{ key:'picks',         label:'Choix',           state:stPicks,    meta: picksCount > 0 ? picksCount+' retenus' : '' },
+			{ key:'guests',        label:'Invités',         state:stGuests,   meta: guestsCount > 0 ? guestsCount+' ajoutés' : '' },
+			{ key:'invites',       label:'Invitations',     state:stInvites,  meta: STATE.invSent > 0 ? STATE.invSent+' envoyées' : '' }
+		];
+
+		var sum = 0;
+		for (var i = 0; i < steps.length; i++) {
+			if (steps[i].state === 'done') sum += 1;
+			else if (steps[i].state === 'in-progress') sum += 0.5;
+		}
+		var pct = Math.round((sum / steps.length) * 100);
+
+		return { pct: pct, steps: steps };
+	}
+
+	function renderSteps(steps) {
+		// La premiere etape non-done devient "current" (mise en evidence)
+		var foundCurrent = false;
+		var html = '';
+		for (var i = 0; i < steps.length; i++) {
+			var s = steps[i];
+			var cls = s.state;
+			if (!foundCurrent && s.state !== 'done') {
+				cls = 'current';
+				foundCurrent = true;
+			}
+			var icon = (s.state === 'done') ? '✓' : (i + 1);
+			html += '<div class="step-mini ' + cls + '">';
+			html += '<div class="dot">' + icon + '</div>';
+			html += '<div class="label">' + s.label + '</div>';
+			if (s.meta) html += '<div class="meta">' + s.meta + '</div>';
+			html += '</div>';
+		}
+		document.getElementById('stepsList').innerHTML = html;
+	}
+
+	function renderRecentPicks() {
+		var c = document.getElementById('recentPicks');
+		if (STATE.picks.length === 0) {
+			c.innerHTML = '<div class="empty-state">Aucun prestataire retenu pour le moment.<br><a href="recommendations.html">Voir mes recommandations →</a></div>';
+			return;
+		}
+		var html = '';
+		var lim = Math.min(4, STATE.picks.length);
+		for (var i = 0; i < lim; i++) {
+			var p = STATE.picks[i];
+			html += '<a href="mychoices.html" class="list-item">';
+			html += '<span class="badge-cat">' + (p.category || '') + '</span>';
+			html += '<span class="name">' + (p.vendorName || '') + '</span>';
+			html += '<span class="price">' + formatPrice(p.prixMin) + '</span>';
+			html += '</a>';
+		}
+		if (STATE.picks.length > 4) {
+			html += '<a class="see-more" href="mychoices.html">Voir mes ' + STATE.picks.length + ' choix →</a>';
+		}
+		c.innerHTML = html;
+	}
+
+	function renderTopRecos() {
+		var c = document.getElementById('topRecos');
+		if (STATE.recos.length === 0) {
+			c.innerHTML = '<div class="empty-state">Complétez le questionnaire pour découvrir vos recommandations.<br><a href="questionnaire.html">Y aller →</a></div>';
+			return;
+		}
+		var sorted = STATE.recos.slice().sort(function(a,b){ return (b.score || 0) - (a.score || 0); });
+		var html = '';
+		var lim = Math.min(3, sorted.length);
+		for (var i = 0; i < lim; i++) {
+			var r = sorted[i];
+			html += '<a class="list-item" href="recommendations.html">';
+			html += '<span class="score-pill">' + Math.round(r.score || 0) + '%</span>';
+			html += '<span class="name">' + (r.vendorName || '') + '</span>';
+			html += '<span class="price">' + formatPrice(r.prixMin) + '</span>';
+			html += '</a>';
+		}
+		html += '<a class="see-more" href="recommendations.html">Toutes mes recommandations →</a>';
+		c.innerHTML = html;
+	}
+
+	function computeBudget() {
+		var total = (STATE.qa && STATE.qa.budgetTotal) ? STATE.qa.budgetTotal : 0;
+		var spent = 0;
+		for (var i = 0; i < STATE.picks.length; i++) {
+			spent += (STATE.picks[i].prixMin || 0);
+		}
+		return { total: total, spent: spent, left: Math.max(0, total - spent) };
+	}
+
+	function renderCountdown() {
+		var dateStr = STATE.qa && STATE.qa.dateMariage;
+		var box = document.getElementById('weddingCountdown');
+		if (!dateStr || !window.AyoraFmt) { box.style.display = 'none'; return; }
+		var days = AyoraFmt.daysUntil(dateStr);
+		if (days == null) { box.style.display = 'none'; return; }
+		box.style.display = 'flex';
+
+		var ctDays = document.getElementById('ctDays');
+		var ctLabel = document.getElementById('ctLabel');
+		var ctDate = document.getElementById('ctDate');
+		var ctDateMeta = document.getElementById('ctDateMeta');
+
+		if (days < 0) {
+			ctDays.textContent = 'Mariage';
+			ctLabel.textContent = 'célébré il y a ' + Math.abs(days) + ' jour' + (Math.abs(days)>1?'s':'') + '';
+		} else if (days === 0) {
+			ctDays.textContent = "C'est aujourd'hui !";
+			ctLabel.textContent = 'Profitez de votre grand jour';
+		} else if (days === 1) {
+			ctDays.textContent = 'Demain';
+			ctLabel.textContent = 'le grand jour arrive';
+		} else if (days < 30) {
+			ctDays.textContent = days + ' jours';
+			ctLabel.textContent = 'avant le grand jour';
+		} else if (days < 90) {
+			ctDays.textContent = days + ' jours';
+			ctLabel.textContent = 'avant le grand jour';
+		} else {
+			ctDays.textContent = AyoraFmt.timeUntil(dateStr);
+			ctLabel.textContent = 'avant le grand jour';
+		}
+
+		ctDate.textContent = AyoraFmt.dateLong(dateStr);
+		var ville = (STATE.qa && STATE.qa.notesSpeciales) ? extractFromNotes(STATE.qa.notesSpeciales, 'villeMariage') : '';
+		ctDateMeta.textContent = ville ? ('à ' + AyoraFmt.capitalize(ville)) : '';
+	}
+
+	function extractFromNotes(json, key) {
+		if (!json) return '';
+		try {
+			var o = JSON.parse(json);
+			return o[key] || '';
+		} catch(e) { return ''; }
+	}
+
+	function renderNavBadges() {
+		// Compteur cumulé pour les éléments en attente côté CLIENT.
+		// On affiche un badge "•" simple si > 0 (visuel discret) ou le nombre.
+		var nav = document.querySelectorAll('.menu-bar nav span');
+		// "Recommandations" : nb de recos non vues (approximation = total recos si pas tracking côté serveur)
+		// "Invités" : OK pas de badge
+		// On garde simple : si devisCount + rdvCount > 0, on l'affiche dans le badge user (haut droit)
+		// Pour ne pas trop polluer, on n'ajoute pas de badge ici par défaut.
+		// Cette fonction est un hook pour future extension.
+	}
+	</script>
+	<script src="js/account-menu.js?v=1"></script>
+</body>
+</html>

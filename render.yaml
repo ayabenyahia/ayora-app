@@ -1,0 +1,28 @@
+# Configuration Render (Blueprint) : Render lit ce fichier et cree le service.
+# Les valeurs marquees "sync: false" sont demandees a la creation (secrets).
+services:
+  - type: web
+    name: ayora
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /ayora/
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: AYORA_DB_SSL
+        value: "true"
+      - key: AYORA_DB_NAME
+        value: defaultdb
+      - key: AYORA_DB_USER
+        value: avnadmin
+      - key: AYORA_DB_HOST
+        sync: false
+      - key: AYORA_DB_PORT
+        sync: false
+      - key: AYORA_DB_PASSWORD
+        sync: false
+      - key: AYORA_ADMIN_PASSWORD
+        sync: false
+      - key: AYORA_CLOUD_API_KEY
+        sync: false

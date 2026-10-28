@@ -1,0 +1,14 @@
+# Ce qui ne doit pas partir dans l'image Docker
+.git
+.github
+.metadata
+.settings
+.classpath
+.project
+bin
+docs
+tools
+sql
+_backup_avant_deploiement
+WebContent/WEB-INF/classes
+*.log

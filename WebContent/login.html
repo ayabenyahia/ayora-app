@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="UTF-8">
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
+	<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Ayora - Connexion</title>
+	<link rel="stylesheet" href="css/styles.css?v=26">
+	<style>
+		.login-extras {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin: -4px 0 18px;
+			font-size: 13px;
+		}
+		.login-extras label {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			color: #5a4a3e;
+			cursor: pointer;
+		}
+		.login-extras label input { margin: 0; }
+		.forgot-link {
+			color: var(--primary);
+			font-weight: 600;
+			text-decoration: none;
+			background: none;
+			border: none;
+			cursor: pointer;
+			padding: 0;
+			font-size: 13px;
+			font-family: inherit;
+		}
+		.forgot-link:hover { text-decoration: underline; }
+		.forgot-modal-backdrop {
+			display: none;
+			position: fixed; inset: 0;
+			background: rgba(42,30,22,0.55);
+			z-index: 999;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+		}
+		.forgot-modal-backdrop.is-open { display: flex; }
+		.forgot-modal {
+			background: #fff;
+			border-radius: 16px;
+			padding: 32px 28px;
+			max-width: 440px;
+			width: 100%;
+			box-shadow: 0 30px 60px rgba(0,0,0,0.25);
+			animation: fadeInUp 0.25s ease-out;
+		}
+		@keyframes fadeInUp {
+			from { transform: translateY(20px); opacity: 0; }
+			to { transform: translateY(0); opacity: 1; }
+		}
+		.forgot-modal h3 {
+			font-family: 'Cormorant Garamond', serif;
+			font-size: 26px;
+			color: var(--primary);
+			margin: 0 0 8px;
+		}
+		.forgot-modal p {
+			color: #6a5a4e;
+			font-size: 14px;
+			line-height: 1.5;
+			margin: 0 0 18px;
+		}
+		.forgot-modal .form-group { margin-bottom: 14px; }
+		.forgot-modal-actions { display: flex; gap: 10px; }
+		.forgot-modal-actions button { flex: 1; }
+		.forgot-success {
+			display: none;
+			background: #E8F5EE;
+			border: 1px solid #3D8B5E;
+			color: #1E5234;
+			padding: 12px;
+			border-radius: 8px;
+			margin-bottom: 14px;
+			font-size: 13px;
+		}
+	</style>
+</head>
+<body>
+
+	<!-- NAVIGATION -->
+	<div class="menu-bar">
+		<div class="logo" onclick="location.href='index.html'">Ayora<span>.ma</span></div>
+		<nav>
+			<span class="active">Connexion</span>
+			<span onclick="location.href='register.html'">Inscription</span>
+		</nav>
+	</div>
+
+	<!-- LOGIN FORM -->
+	<div class="auth-container">
+		<div class="auth-box">
+			<h2>Bienvenue</h2>
+			<p class="subtitle">Connectez-vous à votre espace Ayora</p>
+
+			<div id="errorMsg" class="error-message"></div>
+
+			<form id="loginForm" onsubmit="handleLogin(event)">
+				<div class="form-group">
+					<label for="email">Adresse e-mail</label>
+					<input type="email" id="email" placeholder="votre@email.com" required>
+				</div>
+				<div class="form-group">
+					<label for="password">Mot de passe</label>
+					<input type="password" id="password" placeholder="Votre mot de passe" required>
+				</div>
+				<div class="login-extras">
+					<label>
+						<input type="checkbox" id="rememberMe">
+						<span>Se souvenir de moi</span>
+					</label>
+					<button type="button" class="forgot-link" onclick="openForgotModal()">Mot de passe oublié ?</button>
+				</div>
+				<div style="text-align:center;">
+					<button type="submit" class="btn btn-primary" style="display:inline-block;margin:0 auto;">Se connecter</button>
+				</div>
+			</form>
+
+			<p class="link-text">
+				Pas encore de compte ? <a href="register.html">Créer un compte</a>
+			</p>
+		</div>
+	</div>
+
+	<!-- Mot de passe oublié - modale -->
+	<div id="forgotModal" class="forgot-modal-backdrop" onclick="if(event.target===this) closeForgotModal()">
+		<div class="forgot-modal">
+			<h3>Mot de passe oublié</h3>
+			<p>Indiquez l'e-mail de votre compte. Nous vous enverrons un lien pour réinitialiser votre mot de passe.</p>
+			<div id="forgotSuccess" class="forgot-success">
+				✓ Si un compte est associé à cet e-mail, vous recevrez le lien dans quelques minutes.
+			</div>
+			<form id="forgotForm" onsubmit="handleForgot(event)">
+				<div class="form-group">
+					<label for="forgotEmail">Adresse e-mail</label>
+					<input type="email" id="forgotEmail" placeholder="votre@email.com" required>
+				</div>
+				<div class="forgot-modal-actions">
+					<button type="button" class="btn btn-secondary" onclick="closeForgotModal()">Annuler</button>
+					<button type="submit" class="btn btn-primary">Envoyer</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<footer class="site-footer">
+		<div class="footer-inner">
+			<div class="footer-brand">Ayora<span>.ma</span></div>
+			<nav class="footer-links">
+				<a href="cgu.html">CGU</a>
+				<a href="confidentialite.html">Confidentialité</a>
+				<a href="mentions.html">Mentions légales</a>
+				<a href="contact.html">Contact</a>
+			</nav>
+			<div class="footer-copy">© 2026 Ayora — Tous droits réservés</div>
+		</div>
+	</footer>
+
+	<script src="js/api.js"></script>
+	<script>
+		function getQueryParam(name) {
+			var m = location.search.match(new RegExp('[?&]' + name + '=([^&]+)'));
+			return m ? decodeURIComponent(m[1]) : null;
+		}
+
+		// Pré-remplir email si "se souvenir de moi" actif
+		(function restoreRememberedEmail() {
+			var saved = localStorage.getItem('ayora_remembered_email');
+			if (saved) {
+				document.getElementById('email').value = saved;
+				document.getElementById('rememberMe').checked = true;
+			}
+		})();
+
+		function handleLogin(event) {
+			event.preventDefault();
+			var email = document.getElementById('email').value;
+			var password = document.getElementById('password').value;
+			var remember = document.getElementById('rememberMe').checked;
+			var errorMsg = document.getElementById('errorMsg');
+			errorMsg.style.display = 'none';
+
+			if (remember) {
+				localStorage.setItem('ayora_remembered_email', email);
+			} else {
+				localStorage.removeItem('ayora_remembered_email');
+			}
+
+			api.post('/api/auth/login', { email: email, password: password })
+				.then(function(data) {
+					if (data.success) {
+						// Defense XSS : on ne garde JAMAIS le mot de passe en localStorage,
+						// meme si le backend en renvoie un (compatibilite legacy).
+						var safeUser = Object.assign({}, data.user);
+						delete safeUser.password;
+						delete safeUser.passwordHash;
+						localStorage.setItem('user', JSON.stringify(safeUser));
+
+						// Si l'utilisateur etait sur une page qui a expire, on y retourne
+						var next = getQueryParam('next');
+						var restore = getQueryParam('restore');
+						if (next) {
+							var sep = restore ? '?restore=1' : '';
+							location.href = next + sep;
+							return;
+						}
+
+						if (data.user.role === 'ADMIN') {
+							location.href = 'admin.html';
+						} else if (data.user.role === 'PRESTATAIRE') {
+							location.href = 'vendor-portal.html';
+						} else if (!data.user.questionnaireCompleted) {
+							location.href = 'questionnaire.html';
+						} else {
+							location.href = 'dashboard.html';
+						}
+					} else {
+						errorMsg.textContent = data.error || 'Identifiants incorrects';
+						errorMsg.style.display = 'block';
+					}
+				})
+				.catch(function(err) {
+					errorMsg.textContent = 'Erreur de connexion au serveur';
+					errorMsg.style.display = 'block';
+				});
+		}
+
+		function openForgotModal() {
+			document.getElementById('forgotModal').classList.add('is-open');
+			document.getElementById('forgotSuccess').style.display = 'none';
+			document.getElementById('forgotEmail').focus();
+		}
+		function closeForgotModal() {
+			document.getElementById('forgotModal').classList.remove('is-open');
+		}
+		function handleForgot(event) {
+			event.preventDefault();
+			// Pas d'endpoint backend pour reinit. On simule un envoi (message neutre pour
+			// eviter de divulguer si l'email existe en base).
+			document.getElementById('forgotSuccess').style.display = 'block';
+			document.getElementById('forgotForm').reset();
+			setTimeout(closeForgotModal, 3000);
+		}
+	</script>
+</body>
+</html>

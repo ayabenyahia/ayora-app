@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="UTF-8">
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
+	<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Ayora - Recommandations personnalisées</title>
+	<link rel="stylesheet" href="css/styles.css?v=44">
+	<link rel="stylesheet" href="css/account.css?v=1">
+	<link rel="stylesheet" href="css/assistant.css?v=4">
+	<style>
+		.reco-layout { display:grid; grid-template-columns:300px 1fr; gap:20px; padding:20px; align-items:flex-start; }
+		@media (max-width: 980px) { .reco-layout { grid-template-columns: 1fr; padding:14px; } }
+		/* Mobile : sidebar profil deplacee en bas (apres les cartes), summary
+		   plus compacte, tabs scrollables horizontalement. */
+		@media (max-width: 768px) {
+			.reco-layout { padding:10px; gap:14px; }
+			.reco-layout > aside { order: 2; }   /* sidebar va apres main */
+			.profile-card { position: static; padding:14px; }
+			.summary-bar { padding:14px 16px; gap:8px; }
+			.summary-bar h2 { font-size:1.15rem; }
+			.summary-bar .stat .num { font-size:1.2rem; }
+			.summary-bar .stat .lab { font-size:10px; letter-spacing:.6px; }
+			/* On masque 2 stats sur 4 sur mobile (top + bon plan suffisent) */
+			.summary-bar .stat:nth-child(5),
+			.summary-bar .stat:nth-child(6) { display:none; }
+			#aiExplainer { padding:12px; font-size:12px; }
+			#aiExplainer .tag { font-size:11px; padding:2px 8px; }
+			.tabs { flex-wrap:nowrap; overflow-x:auto; padding-bottom:6px; -webkit-overflow-scrolling:touch; }
+			.tabs button { flex-shrink:0; font-size:12px; padding:7px 12px; }
+			.block { padding:16px; }
+			.cards-grid { grid-template-columns: 1fr; gap:14px; }
+		}
+
+		.profile-card { background:var(--white); border-radius:var(--radius-lg); padding:22px; box-shadow:var(--shadow-md); position:sticky; top:80px; }
+		.profile-card h3 { font-size:1.25rem; margin-bottom:14px; color:var(--primary-dark); border-bottom:2px solid var(--gold); padding-bottom:8px; }
+		.profile-row { display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px dashed var(--border-light); font-size:13px; }
+		.profile-row:last-child { border-bottom:none; }
+		.profile-row .label { color:var(--text-muted); font-weight:500; }
+		.profile-row .value { color:var(--text-dark); font-weight:600; text-align:right; max-width:60%; }
+
+		.filters { background:var(--white); border-radius:var(--radius-lg); padding:18px; box-shadow:var(--shadow-md); margin-top:16px; }
+		.filters h4 { font-size:1.05rem; margin-bottom:12px; color:var(--primary-dark); }
+		.filters label { display:block; font-size:12px; color:var(--text-muted); margin:10px 0 4px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+		.filters select, .filters input { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; background:var(--cream); }
+		.filters .filter-actions { display:flex; gap:8px; margin-top:14px; }
+		.filters .filter-actions button { flex:1; }
+
+		.block { background:var(--white); border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-md); margin-bottom:24px; }
+		.block-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding-bottom:12px; border-bottom:2px solid var(--gold-light); }
+		.block-title { font-family:'Cormorant Garamond',serif; font-size:1.6rem; color:var(--primary-dark); font-weight:600; display:flex; align-items:center; gap:10px; }
+		.block-title .badge { background:var(--gold); color:var(--white); font-family:'Montserrat',sans-serif; font-size:11px; padding:2px 10px; border-radius:var(--radius-xl); font-weight:600; letter-spacing:0.5px; }
+		.block-subtitle { font-size:13px; color:var(--text-muted); }
+
+		.cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:18px; }
+
+		.reco-card { background:linear-gradient(180deg,var(--white) 0%,var(--cream) 100%); border-radius:var(--radius-md); border:1px solid var(--border-light); padding:18px; transition:var(--transition); position:relative; overflow:hidden; display:flex; flex-direction:column; }
+		.reco-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-lg); border-color:var(--gold); }
+		.reco-card .score-ribbon { position:absolute; top:0; right:0; background:var(--primary-dark); color:var(--white); padding:4px 14px; font-size:13px; font-weight:700; border-bottom-left-radius:var(--radius-md); }
+		.reco-card .score-ribbon.excellent { background:linear-gradient(135deg,var(--gold) 0%,var(--gold-dark) 100%); }
+		.reco-card .score-ribbon.good { background:var(--success); }
+		.reco-card .score-ribbon.ok { background:var(--warning); color:var(--text-dark); }
+		.reco-card .score-ribbon.low { background:var(--text-light); }
+
+		.reco-card h4 { font-size:1.25rem; margin:6px 0 4px; color:var(--text-dark); padding-right:60px; }
+		.reco-card .reco-cat { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--gold-dark); font-weight:700; }
+
+		.reco-meta { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; font-size:12px; color:var(--text-muted); }
+		.reco-meta span { display:inline-flex; align-items:center; gap:4px; }
+		.reco-meta .gamme-eco { color:var(--gamme-eco); font-weight:600; }
+		.reco-meta .gamme-moyen { color:var(--gamme-moyen); font-weight:600; }
+		.reco-meta .gamme-premium { color:var(--gamme-premium); font-weight:600; }
+
+		.reco-tags { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+		.tag { background:var(--gold-soft); color:var(--gold-dark); padding:3px 10px; border-radius:var(--radius-xl); font-size:11px; font-weight:600; border:1px solid var(--gold-light); }
+		.tag.coup { background:var(--primary-soft); color:var(--primary-dark); border-color:var(--rose-gold); }
+		.tag.luxe { background:var(--text-dark); color:var(--gold-light); border-color:var(--gold); }
+		.tag.eco { background:var(--success-light); color:var(--sage-dark); border-color:var(--success); }
+		.tag.alert { background:var(--danger-light); color:var(--danger); border-color:var(--danger); }
+		.tag.priority { background:var(--info-light); color:var(--info); border-color:var(--info); }
+
+		.reco-raison { font-size:13px; color:var(--text-body); line-height:1.5; margin:10px 0; padding:10px; background:var(--cream); border-left:3px solid var(--gold); border-radius:var(--radius-sm); }
+
+		.subscores { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin:10px 0; }
+		.subscore { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-muted); }
+		.subscore .bar { flex:1; height:5px; background:var(--border-light); border-radius:3px; overflow:hidden; }
+		.subscore .bar > div { height:100%; background:linear-gradient(90deg,var(--gold) 0%,var(--gold-dark) 100%); }
+		.subscore .sval { font-weight:700; color:var(--text-dark); min-width:30px; text-align:right; }
+
+		.reco-price { font-family:'Cormorant Garamond',serif; font-size:1.3rem; color:var(--primary-dark); font-weight:600; margin:8px 0; }
+		.reco-price small { font-size:11px; color:var(--text-muted); font-family:'Montserrat',sans-serif; font-weight:500; }
+
+		.contact-bar { display:flex; gap:0; margin-top:auto; padding-top:14px; border-top:1px solid var(--border-light); align-items:stretch; }
+		.contact-bar a { flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 6px; font-size:12px; font-weight:600; color:var(--text-muted); text-decoration:none; border-right:1px solid var(--border-light); transition:var(--transition-fast); position:relative; }
+		.contact-bar a:last-child { border-right:none; }
+		.contact-bar a:hover { background:var(--gold-soft); color:var(--primary-dark); }
+		.contact-bar a.disabled { opacity:0.35; pointer-events:none; }
+		.contact-bar .ico { width:18px; height:18px; display:inline-block; vertical-align:middle; }
+		.contact-bar .ico svg { width:18px; height:18px; fill:currentColor; }
+		.contact-bar .lab { display:none; }
+		@media (min-width: 1200px) { .contact-bar .lab { display:inline; } }
+
+		.empty-block { padding:30px; text-align:center; color:var(--text-muted); font-style:italic; }
+
+		/* Bloc par catégorie (3 par service) */
+		.cat-block { margin: 24px 0 30px; padding-bottom: 18px; border-bottom: 1px dashed var(--border-light); }
+		.cat-block:last-child { border-bottom: none; padding-bottom: 0; }
+		.cat-block-head { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin: 0 0 16px; }
+		.cat-block-title { font-family:'Cormorant Garamond',serif; font-size:1.5rem; color:var(--primary-dark); margin: 0; display:flex; align-items:center; gap:14px; }
+		.cat-block-count { font-family:'Montserrat',sans-serif; background:var(--gold-soft); color:var(--gold-dark); font-size:11px; padding:4px 12px; border-radius:50px; font-weight:600; letter-spacing:.5px; }
+		.cat-see-more { background:var(--white); border:1.5px solid var(--gold); color:var(--gold-dark); font-family:'Montserrat',sans-serif; font-size:12px; font-weight:700; letter-spacing:.5px; padding:8px 16px; border-radius:50px; cursor:pointer; transition:var(--transition-fast); display:inline-flex; align-items:center; gap:6px; }
+		.cat-see-more:hover { background:var(--gold); color:#fff; transform:translateY(-1px); box-shadow:0 6px 16px rgba(184,146,47,.25); }
+		.cat-see-more svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; }
+
+		/* Pagination par categories */
+		.cat-pager { display:flex; justify-content:center; align-items:center; gap:8px; margin: 22px 0 4px; flex-wrap:wrap; }
+		.cat-pager button { background:var(--white); border:1px solid var(--border); color:var(--text-muted); font-weight:600; font-size:13px; padding:8px 14px; border-radius:10px; cursor:pointer; transition:var(--transition-fast); min-width:38px; }
+		.cat-pager button:hover:not(:disabled) { border-color:var(--gold); color:var(--primary-dark); }
+		.cat-pager button.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+		.cat-pager button:disabled { opacity:.4; cursor:not-allowed; }
+		.cat-pager .pager-info { font-size:12.5px; color:var(--text-muted); margin: 0 6px; }
+
+		/* Carte "Voir plus" qui occupe une cellule de la grille (a la place ou
+		   serait la 4eme carte). Remplit naturellement l'espace vide a droite. */
+		.see-more-card { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:32px 22px; min-height:280px; background:linear-gradient(180deg, var(--gold-soft) 0%, var(--cream) 100%); border:2px dashed var(--gold); border-radius:var(--radius-md); cursor:pointer; transition:var(--transition); text-align:center; color:var(--gold-dark); font-family:inherit; }
+		.see-more-card:hover { background:linear-gradient(180deg, var(--gold-light) 0%, var(--cream-dark) 100%); transform:translateY(-3px); box-shadow:var(--shadow-md); border-color:var(--gold-dark); }
+		.see-more-card .icon-circle { width:54px; height:54px; border-radius:50%; background:var(--white); display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-sm); }
+		.see-more-card .icon-circle svg { width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; }
+		.see-more-card .label { font-family:'Cormorant Garamond',serif; font-size:1.4rem; color:var(--primary-dark); font-weight:600; line-height:1.2; }
+		.see-more-card .sub { font-size:12px; color:var(--text-muted); letter-spacing:.5px; text-transform:uppercase; font-weight:600; }
+
+		/* Animation d'apparition des cartes ajoutees par "Voir plus" */
+		.cat-block.is-expanded > .cards-grid > .reco-card { animation: card-fade-in .35s ease both; }
+		@keyframes card-fade-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+		/* Bouton Choisir */
+		.pick-btn { width:100%; margin-top:12px; padding:12px 14px; border:none; border-radius:var(--radius-sm); font-size:13px; font-weight:700; letter-spacing:.5px; cursor:pointer; transition:var(--transition-fast); background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; box-shadow:0 4px 14px rgba(139,26,43,.25); }
+		.pick-btn:hover { transform:translateY(-1px); box-shadow:0 8px 22px rgba(139,26,43,.35); }
+		.pick-btn.picked { background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:#fff; cursor:default; opacity:.9; }
+		.pick-btn:disabled { cursor:default; }
+
+		/* Card en état "choisi" */
+		.reco-card.is-picked { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold-light), 0 8px 28px rgba(184,146,47,.18); }
+		.picked-badge { position:absolute; top:12px; left:12px; background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:#fff; padding:4px 12px; border-radius:50px; font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; z-index:5; }
+
+		.summary-bar { background:linear-gradient(135deg,var(--primary-dark) 0%,var(--primary) 100%); color:var(--white); padding:18px 22px; border-radius:var(--radius-lg); margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; box-shadow:var(--shadow-md); }
+		.summary-bar h2 { color:var(--white); font-size:1.5rem; margin:0; }
+		.summary-bar .stat { text-align:center; }
+		.summary-bar .stat .num { font-size:1.6rem; font-weight:700; font-family:'Cormorant Garamond',serif; color:var(--gold-light); display:block; }
+		.summary-bar .stat .lab { font-size:11px; text-transform:uppercase; letter-spacing:1px; opacity:0.85; }
+
+		.tabs { display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap; }
+		.tabs button { background:var(--white); border:1px solid var(--border); padding:8px 16px; border-radius:var(--radius-xl); cursor:pointer; font-weight:600; font-size:13px; color:var(--text-muted); transition:var(--transition-fast); }
+		.tabs button:hover { border-color:var(--gold); color:var(--text-dark); }
+		.tabs button.active { background:var(--primary); color:var(--white); border-color:var(--primary); }
+	</style>
+</head>
+<body>
+
+	<div class="menu-bar">
+		<div class="logo" onclick="location.href='dashboard.html'">Ayora<span>.ma</span></div>
+		<nav>
+			<span onclick="location.href='dashboard.html'">Tableau de bord</span>
+			<span class="active" onclick="location.href='recommendations.html'">Recommandations</span>
+			<span onclick="location.href='mychoices.html'">Mes choix</span>
+			<span onclick="location.href='vendors.html'">Prestataires</span>
+			<span onclick="location.href='guests.html'">Invités</span>
+			<span onclick="location.href='invitations.html'">Invitations</span>
+			<span onclick="location.href='assistant.html'">Assistante AYORA</span>
+		</nav>
+		<div class="user-info">
+			<span id="userName"></span>
+			<span onclick="logout()" style="cursor:pointer;">Déconnexion</span>
+			<span id="userBadge" class="badge-free">FREE</span>
+		</div>
+	</div>
+
+	<div class="reco-layout">
+
+		<!-- SIDEBAR : profil + filtres -->
+		<aside>
+			<div class="profile-card" id="profileCard">
+				<h3>Votre profil</h3>
+				<div id="profileBody" class="text-muted text-center" style="padding:20px 0;">Chargement…</div>
+				<div style="display:flex;flex-direction:column;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border-light);">
+					<button class="btn btn-small btn-primary" onclick="refreshRecommendations()">Recalculer mes recommandations</button>
+					<button class="btn btn-small btn-secondary" onclick="location.href='questionnaire.html'">Modifier le questionnaire</button>
+				</div>
+			</div>
+		</aside>
+
+		<!-- MAIN : blocs de recommandations -->
+		<main>
+			<!-- ============================================================ -->
+			<!-- AYORA Recommendation Hero — single consolidated card        -->
+			<!-- (was previously 3 blocks: hero + agent card + summary-bar). -->
+			<!-- Contains: badge, personalised title, lede, criteria chips, -->
+			<!-- two CTAs, and a one-line agent quote with a tiny avatar.    -->
+			<!-- ============================================================ -->
+			<section class="reco-hero reco-hero-compact" id="recoHero" aria-labelledby="recoHeroTitle">
+				<span class="reco-hero-badge">AYORA · Sélection personnalisée</span>
+				<h1 id="recoHeroTitle">Je prépare votre sélection…</h1>
+				<p class="reco-hero-lede" id="recoHeroLede">
+					AYORA croise vos préférences avec les caractéristiques disponibles des prestataires
+					pour mettre en avant les options les plus proches de vos besoins.
+				</p>
+				<div class="reco-hero-chips" id="recoHeroChips"></div>
+
+				<!-- One-line agent quote (folded in instead of a separate card) -->
+				<div class="reco-hero-quote" id="recoHeroQuote">
+					<span class="quote-avatar" aria-hidden="true">A</span>
+					<span class="quote-text" id="ayoraAgentMessage">J'étudie vos préférences pour préparer une sélection cohérente avec votre mariage…</span>
+					<span class="quote-status" id="ayoraAgentStatus">Analyse en cours</span>
+				</div>
+
+				<div class="reco-hero-actions">
+					<a href="questionnaire.html" class="btn-primary">Affiner mes critères</a>
+					<button type="button" class="btn-secondary"
+						onclick="window.AyoraAgent && AyoraAgent.openWithMessage('Pourquoi avez-vous sélectionné ces prestataires pour mon mariage ?')">
+						Poser une question à AYORA
+					</button>
+				</div>
+			</section>
+
+			<!-- Tight stats row, no title (the hero above does the job). -->
+			<div class="reco-stats-row">
+				<div class="stat"><span class="num" id="statTotal">—</span><span class="lab">Prestataires</span></div>
+				<div class="stat"><span class="num" id="statTop">—</span><span class="lab">Top match</span></div>
+				<div class="stat"><span class="num" id="statValue">—</span><span class="lab">Bon plan</span></div>
+				<div class="stat"><span class="num" id="statChic">—</span><span class="lab">Premium</span></div>
+			</div>
+
+			<div class="tabs" id="blockTabs"></div>
+
+			<div id="blocksContainer" class="loading">
+				<div class="spinner"></div>
+				<p>Chargement de vos recommandations…</p>
+			</div>
+
+			<!-- Discrete, user-facing explainer (replaces the old k-NN block) -->
+			<details class="reco-explainer-fold">
+				<summary>Comment mes recommandations sont-elles préparées&nbsp;?</summary>
+				<div class="reco-explainer-body">
+					<p>
+						AYORA compare automatiquement vos préférences avec les caractéristiques disponibles
+						des prestataires afin de mettre en avant les options les plus proches de vos besoins.
+						Vos choix restent modifiables à tout moment.
+					</p>
+					<p>
+						La sélection prend en compte plusieurs critères&nbsp;: votre budget, le style de mariage que
+						vous imaginez, votre ville de réception, le nombre d'invités prévus, le type de lieu que
+						vous préférez, ainsi que vos priorités principales (qualité du repas, ambiance, photos…).
+					</p>
+					<p>
+						Aucune donnée n'est envoyée à un service externe&nbsp;: vos préférences servent uniquement
+						à comparer les prestataires déjà enregistrés dans AYORA.
+					</p>
+				</div>
+			</details>
+		</main>
+
+	</div>
+
+	<script src="js/api.js"></script>
+	<script src="js/vendor-card.js?v=45"></script>
+	<script>
+	var user = checkAuth(); if (user) applyAccountHeader(user);
+	if (user) document.getElementById('userName').textContent = user.firstName;
+
+	var STATE = { profile:null, blocks:{}, topPerCategory:{}, all:[], categories:[], counts:{}, pickedVendorIds:[] };
+	var ACTIVE_BLOCK = 'byCategory';   // vue principale : 3 par categorie avec bouton Choisir
+	var CAT_PAGE = 1;                   // page courante de la pagination par categories
+	var CAT_PER_PAGE = 3;               // 3 categories affichees par page
+	var EXPANDED_CATS = {};             // categories avec "Voir plus" actif (cle = nom categorie)
+
+	var BLOCK_META = {
+		byCategory:     { title:'Par catégorie (3 par service)', subtitle:'3 prestataires par catégorie — choisissez celui que vous retenez',   badge:'Choisir' },
+		topPicks:       { title:'Les meilleurs pour vous',         subtitle:'Score global le plus élevé selon votre profil',                   badge:'Top' },
+		prioritePicks:  { title:'Vos priorités',                   subtitle:'Catégories que vous avez classées en priorité dans le questionnaire', badge:'Prioritaire' },
+		bestValue:      { title:'Meilleur rapport qualité / prix', subtitle:'Bon score à un budget maîtrisé',                                badge:'Bon plan' },
+		mostChic:       { title:'Les plus chic',                    subtitle:'Gamme premium avec un excellent match',                          badge:'Chic' },
+		economic:       { title:'Petit budget',                     subtitle:'Gamme économique mais soignée',                                  badge:'Éco' },
+		premium:        { title:'Sélection premium',                subtitle:'Pour un mariage haut de gamme',                                   badge:'Premium' },
+		alternatives:   { title:'À considérer',                     subtitle:'Score correct, à comparer avec vos coups de cœur',               badge:'Alternative' }
+	};
+
+	// Si l'URL contient ?category=... on filtre directement sur cette categorie
+	(function applyUrlCategoryFilter() {
+		var qs = location.search;
+		if (qs.indexOf('category=') === -1) return;
+		// On laisse loadRecommendations utiliser ce qs tel quel
+	})();
+
+	// Initial load : on transmet la querystring (utile pour ?category=...)
+	loadRecommendations(location.search || '');
+
+	function loadRecommendations(qs) {
+		var url = '/api/recommendations' + (qs || '');
+		document.getElementById('blocksContainer').innerHTML = skeletonGridHtml(6);
+		api.get(url).then(function(data) {
+			if (!data || data.completed === false) {
+				renderEmpty();
+				return;
+			}
+			STATE = data;
+			renderProfile(data.profile);
+			renderAyoraHero(data.profile, data.all || [], (data.counts && data.counts.filtered) || 0);
+			populateCategoryFilter(data.categories);
+			renderTabs(data.blocks);
+			renderActiveBlock();
+			updateStats();
+		}).catch(function(err) {
+			renderAyoraHero(null, [], 0, /*hasError*/true);
+			document.getElementById('blocksContainer').innerHTML =
+				'<div class="empty-block">Aucune recommandation disponible. <a href="questionnaire.html">Remplissez le questionnaire</a> pour en obtenir.</div>';
+		});
+	}
+
+	function renderEmpty() {
+		document.getElementById('profileBody').innerHTML = '<p>Aucun questionnaire trouvé.</p>';
+		renderAyoraHero(null, [], 0, /*hasError*/false, /*noQuestionnaire*/true);
+		document.getElementById('blocksContainer').innerHTML =
+			'<div class="empty-block">Pour obtenir des recommandations personnalisées, <a href="questionnaire.html">remplissez d\'abord le questionnaire</a>.</div>';
+	}
+
+	// =========================================================
+	// AYORA Hero + Agent — premium intro rendered with real data
+	// from the user's questionnaire. No invented facts, no jargon.
+	// =========================================================
+	function renderAyoraHero(profile, recs, totalCount, hasError, noQuestionnaire) {
+		var hero = document.getElementById('recoHero');
+		var titleEl = document.getElementById('recoHeroTitle');
+		var ledeEl = document.getElementById('recoHeroLede');
+		var chipsEl = document.getElementById('recoHeroChips');
+		var msgEl = document.getElementById('ayoraAgentMessage');
+		var statusEl = document.getElementById('ayoraAgentStatus');
+		if (!hero || !titleEl || !ledeEl || !chipsEl) return;
+
+		var firstName = (user && user.firstName) || '';
+		var p = profile || {};
+
+		// ---- Title (personalised on first name when available) ----------
+		titleEl.textContent = firstName
+			? firstName + ', j\'ai trouvé des options pensées pour votre mariage'
+			: 'J\'ai trouvé des options qui correspondent à votre mariage';
+
+		// ---- Lede sentence (built from real profile fields) -------------
+		if (noQuestionnaire) {
+			ledeEl.textContent = 'Complétez votre questionnaire de mariage pour que je puisse vous proposer une sélection vraiment adaptée à vos envies.';
+			statusEl.textContent = 'En attente';
+			statusEl.style.background = 'var(--gold-soft)';
+			statusEl.style.color = 'var(--gold-dark)';
+			msgEl.textContent = 'Pour préparer une sélection réellement personnelle, j\'ai besoin de quelques informations sur votre mariage. Lancez le questionnaire et je vous accompagne ensuite étape par étape.';
+			chipsEl.innerHTML = '';
+			return;
+		}
+		if (hasError) {
+			ledeEl.textContent = 'Je n\'ai pas pu récupérer vos recommandations pour l\'instant. Vérifiez votre connexion ou réessayez dans un instant.';
+			statusEl.textContent = 'Connexion perdue';
+			msgEl.textContent = 'Je n\'arrive pas à charger vos données. Réessayez après avoir vérifié votre accès.';
+			chipsEl.innerHTML = '';
+			return;
+		}
+
+		var ctxFragments = [];
+		if (p.budgetTier || p.budgetTotal) ctxFragments.push('de votre budget');
+		var styleNice = humanStyle(p.style);
+		if (styleNice) ctxFragments.push('de votre style ' + styleNice);
+		var lieuNice = humanLieu(p.lieuType);
+		if (lieuNice) ctxFragments.push('de votre préférence pour ' + lieuNice);
+		if (p.userCity) ctxFragments.push('de votre réception à ' + capitalize(p.userCity));
+
+		var ledeText;
+		if (ctxFragments.length >= 2) {
+			ledeText = 'En tenant compte ' + ctxFragments.slice(0, 3).join(', ')
+				+ ', voici les prestataires qui semblent les plus adaptés à vos priorités.';
+		} else if (ctxFragments.length === 1) {
+			ledeText = 'En tenant compte ' + ctxFragments[0]
+				+ ', voici une première sélection à explorer. Vous pouvez affiner vos critères pour préciser les résultats.';
+		} else {
+			ledeText = 'À partir de vos préférences, j\'ai préparé une sélection de prestataires à explorer pour construire le mariage qui vous ressemble.';
+		}
+		ledeEl.textContent = ledeText;
+
+		// ---- Criteria chips (max 5 visible, the rest collapsed) ---------
+		chipsEl.innerHTML = '';
+		var chips = buildChips(p);
+		var visible = chips.slice(0, 5);
+		for (var i = 0; i < visible.length; i++) chipsEl.appendChild(visible[i].el);
+		if (chips.length > 5) {
+			var more = document.createElement('span');
+			more.className = 'reco-chip more';
+			more.textContent = '+ ' + (chips.length - 5) + ' critère' + (chips.length - 5 > 1 ? 's' : '');
+			chipsEl.appendChild(more);
+		}
+
+		// ---- Agent card status + message --------------------------------
+		statusEl.textContent = 'Analyse terminée';
+		statusEl.style.background = 'var(--success-light)';
+		statusEl.style.color = 'var(--success)';
+
+		if (!recs.length) {
+			msgEl.textContent = 'Je n\'ai pas encore trouvé d\'option suffisamment proche de vos critères. Ajustons ensemble un ou deux choix pour découvrir de nouvelles possibilités.';
+		} else if (recs.length < 4) {
+			msgEl.textContent = 'J\'ai trouvé ' + recs.length + ' option' + (recs.length > 1 ? 's' : '')
+				+ ' qui respectent vos critères actuels. Vous pouvez élargir un peu votre budget ou ajuster un choix pour découvrir davantage de possibilités.';
+		} else {
+			var pieces = [];
+			if (lieuNice) pieces.push('votre préférence pour ' + lieuNice);
+			if (p.userCity) pieces.push('votre réception à ' + capitalize(p.userCity));
+			if (p.budgetTier === 'SERRE' || p.budgetTier === 'CONFORTABLE') pieces.push('votre attention au budget');
+			else if (p.budgetTotal) pieces.push('la gamme de budget indiquée');
+			var lead = 'J\'ai étudié vos préférences et sélectionné ' + recs.length + ' prestataires pour votre mariage.';
+			var why = pieces.length
+				? ' ' + capitalize(pieces[0]) + (pieces.length > 1 ? ' et ' + pieces.slice(1).join(', ') : '')
+				  + ' ' + (pieces.length > 1 ? 'ont' : 'a') + ' guidé cette sélection.'
+				: '';
+			msgEl.textContent = lead + why;
+		}
+	}
+
+	function buildChips(p) {
+		var chips = [];
+		function addChip(icon, label) {
+			if (!label) return;
+			var el = document.createElement('span');
+			el.className = 'reco-chip';
+			el.innerHTML = icon + '<span>' + escapeHtml(label) + '</span>';
+			chips.push({ label: label, el: el });
+		}
+		var ic = {
+			wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V6a2 2 0 0 0-2-2H4a2 2 0 0 0 0 4h16a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6"/><path d="M16 12h4"/></svg>',
+			star:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+			pin:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+			users:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>',
+			home:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+			heart:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+			music:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>'
+		};
+
+		if (p.budgetTier || p.budgetTotal) {
+			var tierLabel = ({SERRE:'Budget maîtrisé', CONFORTABLE:'Budget confortable', GENEREUX:'Budget généreux', ILLIMITE:'Sans contrainte budgétaire'})[p.budgetTier];
+			addChip(ic.wallet, tierLabel || 'Budget pris en compte');
+		}
+		var styleNice = humanStyle(p.style);
+		if (styleNice) addChip(ic.star, 'Style : ' + capitalize(styleNice));
+		var lieuNice = humanLieu(p.lieuType);
+		if (lieuNice) addChip(ic.home, 'Lieu : ' + capitalize(lieuNice));
+		if (p.userCity) addChip(ic.pin, 'Ville : ' + capitalize(p.userCity));
+		if (p.nbInvites > 0) addChip(ic.users, p.nbInvites + ' invités');
+		if (p.ambiance) addChip(ic.heart, 'Ambiance : ' + capitalize(p.ambiance.toLowerCase().replace(/_/g, ' ')));
+		if (p.typeMusique) addChip(ic.music, capitalize(p.typeMusique.toLowerCase().replace(/_/g, ' ')));
+		return chips;
+	}
+
+	function humanStyle(s) {
+		if (!s) return '';
+		return ({
+			TRADITIONNEL: 'traditionnel',
+			MODERNE: 'moderne',
+			MIXTE: 'classique modernisé',
+			LUXE: 'luxueux',
+			SIMPLE: 'simple et raffiné',
+			INTIME: 'intime'
+		})[s] || s.toLowerCase();
+	}
+	function humanLieu(l) {
+		if (!l) return '';
+		return ({
+			RIAD: 'un riad élégant',
+			SALLE: 'une salle de fête moderne',
+			JARDIN: 'un cadre extérieur en jardin',
+			PISCINE: 'un lieu avec piscine',
+			HOTEL: 'un hôtel ou un resort',
+			DOMICILE: 'une réception à domicile',
+			MIXTE: 'un lieu polyvalent'
+		})[l] || '';
+	}
+	function capitalize(s) {
+		if (!s) return '';
+		s = s.toString();
+		return s.charAt(0).toUpperCase() + s.slice(1);
+	}
+	function escapeHtml(s) {
+		return String(s == null ? '' : s)
+			.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	}
+
+	function renderProfile(p) {
+		if (!p) return;
+		var rows = [];
+		// Lieu en premier : c'est le critere le plus visible/important pour le client.
+		if (p.lieuType)      rows.push(['Type de lieu', humanize(p.lieuType)]);
+		if (p.userCity)      rows.push(['Ville', p.userCity]);
+		if (p.style)         rows.push(['Style mariage', humanize(p.style)]);
+		if (p.ambiance)      rows.push(['Ambiance', humanize(p.ambiance)]);
+		if (p.niveauLuxe)    rows.push(['Niveau de luxe', humanize(p.niveauLuxe)]);
+		if (p.themeCouleur)  rows.push(['Thème / couleur', humanize(p.themeCouleur)]);
+		if (p.saison)        rows.push(['Saison', humanize(p.saison)]);
+		if (p.budgetTotal)   rows.push(['Budget total', formatPrice(p.budgetTotal)]);
+		if (p.budgetTier)    rows.push(['Tier budget', humanize(p.budgetTier)]);
+		if (p.nbInvites)     rows.push(['Invités', p.nbInvites + ' (' + humanize(p.guestSize) + ')']);
+		if (p.budgetPerGuest) rows.push(['Budget / invité', formatPrice(p.budgetPerGuest)]);
+		if (p.typeMusique)   rows.push(['Musique', humanize(p.typeMusique)]);
+		if (p.typeCuisine)   rows.push(['Cuisine', humanize(p.typeCuisine)]);
+		if (p.halalStrict)   rows.push(['Halal', humanize(p.halalStrict)]);
+		if (p.prefDecoration)rows.push(['Décoration', humanize(p.prefDecoration)]);
+		if (p.styleNeggafa)  rows.push(['Neggafa', humanize(p.styleNeggafa) + ' / ' + p.nbTenuesNeggafa + ' tenues']);
+
+		var html = '';
+		for (var i = 0; i < rows.length; i++) {
+			html += '<div class="profile-row"><span class="label">' + rows[i][0] + '</span><span class="value">' + rows[i][1] + '</span></div>';
+		}
+		document.getElementById('profileBody').innerHTML = html || '<p class="text-muted text-center">Profil incomplet.</p>';
+	}
+
+	function humanize(s) {
+		if (!s) return '—';
+		return s.toString().toLowerCase().replace(/_/g,' ').replace(/^\w/, function(c){ return c.toUpperCase(); });
+	}
+
+	function populateCategoryFilter(_categories) {
+		// Filtres avances retires de l'UI ; on garde la fonction comme no-op pour
+		// la compatibilite, le filtrage par categorie se fait via les tabs.
+	}
+
+	function renderTabs(blocks) {
+		var keys = Object.keys(BLOCK_META);
+		var html = '';
+		for (var i = 0; i < keys.length; i++) {
+			var k = keys[i];
+			var list = blocks[k] || [];
+			if (list.length === 0 && k !== 'topPicks') continue;
+			var active = (k === ACTIVE_BLOCK) ? 'active' : '';
+			html += '<button class="' + active + '" onclick="setBlock(\'' + k + '\')">' +
+				BLOCK_META[k].title + ' <span style="opacity:0.7;">(' + list.length + ')</span></button>';
+		}
+		document.getElementById('blockTabs').innerHTML = html;
+	}
+
+	function setBlock(key) {
+		ACTIVE_BLOCK = key;
+		var btns = document.querySelectorAll('#blockTabs button');
+		for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+		var nodes = document.querySelectorAll('#blockTabs button');
+		for (var j = 0; j < nodes.length; j++) {
+			if (nodes[j].textContent.indexOf(BLOCK_META[key].title) === 0) nodes[j].classList.add('active');
+		}
+		renderActiveBlock();
+	}
+
+	function renderActiveBlock() {
+		// Vue "Par catégorie" (3 par service) — la vue par défaut maintenant
+		if (ACTIVE_BLOCK === 'byCategory') {
+			renderByCategory3();
+			return;
+		}
+
+		var meta = BLOCK_META[ACTIVE_BLOCK] || BLOCK_META.topPicks;
+		var list = (STATE.blocks && STATE.blocks[ACTIVE_BLOCK]) || [];
+
+		var html = '<section class="block">';
+		html += '<div class="block-header">';
+		html += '<div><div class="block-title">' + meta.title + ' <span class="badge">' + meta.badge + '</span></div>';
+		html += '<div class="block-subtitle">' + meta.subtitle + '</div></div>';
+		html += '<div class="text-muted" style="font-size:12px;">' + list.length + ' résultat' + (list.length>1?'s':'') + '</div>';
+		html += '</div>';
+
+		if (list.length === 0) {
+			html += '<div class="empty-block">Aucun prestataire dans ce bloc avec les filtres actuels.</div>';
+		} else {
+			html += '<div class="cards-grid">';
+			for (var i = 0; i < list.length; i++) html += cardHtml(list[i]);
+			html += '</div>';
+		}
+		html += '</section>';
+
+		document.getElementById('blocksContainer').innerHTML = html;
+	}
+
+	/**
+	 * Vue principale "3 par catégorie" PAGINÉE.
+	 *
+	 * Pourquoi paginer : afficher toutes les catégories sur une seule page
+	 * fait scroller longuement et noie l'utilisateur. On affiche CAT_PER_PAGE
+	 * (= 3) catégories par page, avec une pagination claire en bas.
+	 *
+	 * Pour chaque catégorie : 3 meilleures recommandations + bouton "Voir plus"
+	 * qui deploie toutes les autres en place dans la grille.
+	 */
+	function renderByCategory3() {
+		var meta = BLOCK_META.byCategory;
+		var groups = STATE.topPerCategory || {};
+		var allCats = Object.keys(groups).filter(function(c){ return (groups[c]||[]).length > 0; });
+		var totalCats = allCats.length;
+		var pageCount = Math.max(1, Math.ceil(totalCats / CAT_PER_PAGE));
+		if (CAT_PAGE > pageCount) CAT_PAGE = 1;
+		if (CAT_PAGE < 1) CAT_PAGE = 1;
+
+		var startIdx = (CAT_PAGE - 1) * CAT_PER_PAGE;
+		var visibleCats = allCats.slice(startIdx, startIdx + CAT_PER_PAGE);
+
+		var html = '<section class="block">';
+		html += '<div class="block-header">';
+		html += '<div><div class="block-title">' + meta.title + ' <span class="badge">' + meta.badge + '</span></div>';
+		html += '<div class="block-subtitle">' + meta.subtitle + '</div></div>';
+		html += '<div class="text-muted" style="font-size:12px;">' + totalCats + ' catégorie' + (totalCats>1?'s':'')
+			+ ' &middot; page ' + CAT_PAGE + ' / ' + pageCount + '</div>';
+		html += '</div>';
+
+		if (totalCats === 0) {
+			html += '<div class="empty-block">Pas de recommandations disponibles. Vérifiez votre questionnaire.</div>';
+		} else {
+			var ICO_PLUS = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>';
+			var ICO_MINUS = '<svg viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round"/></svg>';
+			for (var k = 0; k < visibleCats.length; k++) {
+				var cat = visibleCats[k];
+				var top3 = groups[cat] || [];
+				var allForCat = allRecsForCategory(cat);
+				var totalForCat = allForCat.length;
+				var isExpanded = !!EXPANDED_CATS[cat];
+				var visibleRecs = isExpanded ? allForCat : top3;
+				var hiddenCount = Math.max(0, totalForCat - top3.length);
+
+				html += '<div class="cat-block' + (isExpanded ? ' is-expanded' : '') + '">';
+				html += '<div class="cat-block-head">';
+				html += '<h3 class="cat-block-title">' + cat
+					+ ' <span class="cat-block-count">' + (isExpanded
+						? totalForCat + ' prestataire' + (totalForCat>1?'s':'') + ' triés par score IA'
+						: 'Choisissez 1 parmi ' + top3.length) + '</span></h3>';
+				html += '</div>';
+				html += '<div class="cards-grid">';
+				for (var j = 0; j < visibleRecs.length; j++) html += cardHtml(visibleRecs[j]);
+				if (hiddenCount > 0) {
+					if (isExpanded) {
+						html += '<button type="button" class="see-more-card" onclick="toggleCategory(\''
+							+ catAttr(cat) + '\')" aria-label="Replier ' + cat + '">'
+							+ '<div class="icon-circle">' + ICO_MINUS + '</div>'
+							+ '<div class="label">Voir moins</div>'
+							+ '<div class="sub">Replier la liste</div>'
+							+ '</button>';
+					} else {
+						html += '<button type="button" class="see-more-card" onclick="toggleCategory(\''
+							+ catAttr(cat) + '\')" aria-label="Voir plus de ' + cat + '">'
+							+ '<div class="icon-circle">' + ICO_PLUS + '</div>'
+							+ '<div class="label">Voir ' + hiddenCount + ' de plus</div>'
+							+ '<div class="sub">Plus de prestataires</div>'
+							+ '</button>';
+					}
+				}
+				html += '</div>';
+				html += '</div>';
+			}
+
+			// Pagination
+			if (pageCount > 1) {
+				html += '<div class="cat-pager">';
+				html += '<button onclick="setCatPage(' + (CAT_PAGE - 1) + ')"' + (CAT_PAGE === 1 ? ' disabled' : '') + ' aria-label="Page précédente">&lsaquo;</button>';
+				for (var p = 1; p <= pageCount; p++) {
+					html += '<button class="' + (p === CAT_PAGE ? 'active' : '') + '" onclick="setCatPage(' + p + ')">' + p + '</button>';
+				}
+				html += '<button onclick="setCatPage(' + (CAT_PAGE + 1) + ')"' + (CAT_PAGE === pageCount ? ' disabled' : '') + ' aria-label="Page suivante">&rsaquo;</button>';
+				html += '<span class="pager-info">' + visibleCats.length + ' catégorie' + (visibleCats.length>1?'s':'') + ' affichée' + (visibleCats.length>1?'s':'') + '</span>';
+				html += '</div>';
+			}
+		}
+		html += '</section>';
+		document.getElementById('blocksContainer').innerHTML = html;
+	}
+
+	function setCatPage(n) {
+		CAT_PAGE = n;
+		renderByCategory3();
+		window.scrollTo({ top: 0, behavior: 'smooth' });
+	}
+
+	function catAttr(cat) {
+		return (cat || '').replace(/'/g, "\\'");
+	}
+
+	function allRecsForCategory(cat) {
+		var out = (STATE.all || []).filter(function(r){ return r.category === cat; });
+		out.sort(function(a, b){ return (b.score || 0) - (a.score || 0); });
+		return out;
+	}
+
+	function toggleCategory(cat) {
+		EXPANDED_CATS[cat] = !EXPANDED_CATS[cat];
+		renderByCategory3();
+	}
+
+	function renderByCategory() {
+		var groups = {};
+		for (var i = 0; i < STATE.all.length; i++) {
+			var r = STATE.all[i];
+			if (!groups[r.category]) groups[r.category] = [];
+			groups[r.category].push(r);
+		}
+		var html = '<section class="block">';
+		html += '<div class="block-header"><div class="block-title">Par catégorie <span class="badge">Tout</span></div>';
+		html += '<div class="block-subtitle">Vos prestataires triés par score, regroupés par poste</div></div>';
+		var keys = Object.keys(groups);
+		for (var k = 0; k < keys.length; k++) {
+			var cat = keys[k];
+			var recs = groups[cat];
+			html += '<h3 style="margin:18px 0 12px;color:var(--primary-dark);font-size:1.2rem;">' + cat + ' <small style="font-size:13px;color:var(--text-muted);font-weight:400;">(' + recs.length + ')</small></h3>';
+			html += '<div class="cards-grid">';
+			var lim = Math.min(6, recs.length);
+			for (var j = 0; j < lim; j++) html += cardHtml(recs[j]);
+			html += '</div>';
+		}
+		html += '</section>';
+		return html;
+	}
+
+	function cardHtml(r) {
+		// Delegate au composant partage (js/vendor-card.js). On lui passe le
+		// bouton d'action specifique a cette page (Choisir / Retenu).
+		var picked = STATE.pickedVendorIds && STATE.pickedVendorIds.indexOf(r.vendorId) >= 0;
+		var name = (r.vendorName || '').replace(/'/g, "\\'");
+		var cat  = (r.category || '').replace(/'/g, "\\'");
+		var actionHtml = picked
+			? '<button class="pick-btn picked" disabled>&#10003; Retenu</button>'
+			: '<button class="pick-btn" onclick="pickVendor(' + r.vendorId + ',\'' + name + '\',\'' + cat + '\')">Choisir ce prestataire</button>';
+		return AyoraCard.render(r, { picked: picked, actionHtml: actionHtml, showScore: true, showAyoraOpinion: true });
+	}
+
+	// === Choisir un prestataire (POST /api/picks) ===
+	function pickVendor(vendorId, name, category) {
+		api.post('/api/picks', { vendorId: vendorId }).then(function(r) {
+			if (r && r.success) {
+				// Met à jour l'état local + re-rendu sans rechargement complet
+				if (!STATE.pickedVendorIds) STATE.pickedVendorIds = [];
+				// Pour respecter "1 par catégorie" : on retire l'ancien pick de cette catégorie côté UI
+				STATE.pickedVendorIds = STATE.pickedVendorIds.filter(function(id) {
+					var prev = (STATE.all || []).find(function(x){ return x.vendorId === id; });
+					return !(prev && prev.category === category);
+				});
+				STATE.pickedVendorIds.push(vendorId);
+				renderActiveBlock();
+				showToast('✓ ' + name + ' retenu pour ' + category + '. Voir vos choix →', 'mychoices.html');
+			} else {
+				showToast('✗ ' + ((r && r.error) || 'Erreur lors de la sauvegarde'), null);
+			}
+		}).catch(function() {
+			showToast('Erreur réseau, réessayez', null);
+		});
+	}
+
+	function showToast(msg, link) {
+		var t = document.getElementById('toast');
+		if (!t) {
+			t = document.createElement('div');
+			t.id = 'toast';
+			t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--primary-dark);color:#fff;padding:14px 22px;border-radius:50px;box-shadow:0 8px 28px rgba(0,0,0,.25);z-index:10000;font-size:14px;font-weight:500;cursor:pointer;';
+			document.body.appendChild(t);
+		}
+		t.textContent = msg;
+		t.onclick = link ? function(){ location.href = link; } : null;
+		t.style.cursor = link ? 'pointer' : 'default';
+		t.style.opacity = '1';
+		setTimeout(function(){ t.style.transition = 'opacity 0.6s'; t.style.opacity = '0'; }, 3500);
+	}
+
+	function refreshRecommendations() {
+		document.getElementById('blocksContainer').innerHTML = skeletonGridHtml(6);
+		api.post('/api/recommendations/refresh', {}).then(function() {
+			loadRecommendations('');
+		}).catch(function() {
+			loadRecommendations('');
+		});
+	}
+
+	function skeletonGridHtml(n) {
+		var card = '<article class="ayora-skel-card">' +
+			'<div class="ayora-skel cover"></div>' +
+			'<div class="ayora-skel title"></div>' +
+			'<div class="ayora-skel line"></div>' +
+			'<div class="ayora-skel line short"></div>' +
+			'<div class="ayora-skel line"></div>' +
+			'</article>';
+		var out = '<div class="ayora-skel-grid" aria-live="polite" aria-busy="true">';
+		for (var i = 0; i < n; i++) out += card;
+		out += '</div>';
+		return out;
+	}
+
+	function updateStats() {
+		var total = (STATE.counts && STATE.counts.filtered) || (STATE.all || []).length;
+		document.getElementById('statTotal').textContent = total;
+		document.getElementById('statTop').textContent = ((STATE.blocks && STATE.blocks.topPicks) || []).length;
+		document.getElementById('statValue').textContent = ((STATE.blocks && STATE.blocks.bestValue) || []).length;
+		document.getElementById('statChic').textContent = ((STATE.blocks && STATE.blocks.mostChic) || []).length;
+	}
+	</script>
+
+	<script src="js/ayora-ui.js"></script>
+	<script src="js/assistant.js?v=2"></script>
+	<script src="js/assistant-floating.js?v=2" data-ayora-page="vendors"></script>
+
+	<footer class="site-footer">
+		<div class="footer-inner">
+			<div class="footer-brand">Ayora<span>.ma</span></div>
+			<nav class="footer-links">
+				<a href="cgu.html">CGU</a>
+				<a href="confidentialite.html">Confidentialité</a>
+				<a href="mentions.html">Mentions légales</a>
+				<a href="contact.html">Contact</a>
+			</nav>
+			<div class="footer-copy">© 2026 Ayora.ma — Tous droits réservés</div>
+		</div>
+	</footer>
+	<script src="js/account-menu.js?v=1"></script>
+</body>
+</html>
